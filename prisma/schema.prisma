@@ -1,0 +1,190 @@
+// Schema do banco de dados do app Tainted Grail.
+// Estrutura da ficha baseada no corebook oficial, p.390-391 (Character Sheet)
+// e p.152-209 (Character Creation, passos 1 a 10).
+// Ver Tainted Grail/CLAUDE.md para as regras do projeto antes de alterar este arquivo.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Usuários e papéis
+// ---------------------------------------------------------------------------
+
+enum Role {
+  PLAYER
+  GM
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  role         Role     @default(PLAYER)
+  createdAt    DateTime @default(now())
+
+  characters  CharacterSheet[]
+  monsters    MonsterOrNpc[]
+
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Ficha de personagem
+// ---------------------------------------------------------------------------
+
+enum CharacterStatus {
+  DRAFT
+  COMPLETE
+}
+
+// As 5 Vias (Ways), p.390 da ficha oficial.
+enum Way {
+  AWARENESS      // Consciência
+  COMBATIVENESS  // Combatividade
+  CREATIVITY     // Criatividade
+  CONVICTION     // Convicção
+  REASON         // Razão
+}
+
+// Tipo de item de inventário.
+enum ItemType {
+  WEAPON
+  ARMOR
+  EQUIPMENT
+}
+
+model CharacterSheet {
+  id     String          @id @default(cuid())
+  userId String
+  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status CharacterStatus @default(DRAFT)
+
+  // Progresso do assistente de criação (Fase 1): última etapa concluída (0-10).
+  creationStep Int @default(0)
+
+  // --- Etapa 1: Color (p.161) ---
+  color String?
+
+  // --- Etapa 2: Origin (p.165) ---
+  origin String?
+
+  // --- Etapa 4: Occupation and Skills (p.173) ---
+  occupation String?
+
+  // --- Etapa 5: Age (p.181) ---
+  age String?
+
+  // --- Etapa 8: character description (p.195) ---
+  name        String?
+  description String?
+
+  // --- Etapa 9: other Attributes (p.201) ---
+  stamina             Int @default(0)
+  survivalPoints      Int @default(0)
+  sanity              Int @default(0)
+  mentalResistance    Int @default(0)
+  torment             Int @default(0)
+  rout                Int @default(0)
+  magicPoints         Int @default(0)
+  ascensionDisgrace   Int @default(0)
+  riches              String?
+
+  // --- Etapa 10: Story Arc (p.205) — Atos 1/2/3, cada um com "Steps" ---
+  storyArc Json?
+
+  // --- Etapa 6: Experience, Advantages, and Disadvantages (p.183) ---
+  experience    Int   @default(0)
+  advantages    Json?
+  disadvantages Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ways   CharacterWay[]
+  domains CharacterDomain[]
+  items  CharacterItem[]
+  rolls  DiceRollLog[]
+
+  @@map("character_sheets")
+}
+
+// Rating das 5 Vias por personagem.
+model CharacterWay {
+  id          String @id @default(cuid())
+  characterId String
+  character   CharacterSheet @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  way         Way
+  rating      Int    @default(0)
+
+  @@unique([characterId, way])
+  @@map("character_ways")
+}
+
+// Os ~20 Domínios da ficha oficial (p.390), cada um com Disciplinas associadas.
+// domainKey usa a chave em inglês do livro (ex: "LEADERSHIP", "CLOSE_COMBAT")
+// para bater exatamente com a nomenclatura oficial — ver reference/corebook_fulltext.txt p.390.
+model CharacterDomain {
+  id          String @id @default(cuid())
+  characterId String
+  character   CharacterSheet @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  domainKey   String
+  rating      Int    @default(0)
+  bonus       Int    @default(0)
+  penalty     Int    @default(0)
+  // Disciplinas escolhidas dentro do domínio: [{ name, rating }]
+  disciplines Json?
+
+  @@unique([characterId, domainKey])
+  @@map("character_domains")
+}
+
+// Armas, armaduras e equipamento (p.391 — Weapons/Armor/Equipment).
+model CharacterItem {
+  id          String   @id @default(cuid())
+  characterId String
+  character   CharacterSheet @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  type        ItemType
+  name        String
+  // Ex: { damage: "1D6" } para arma, { protection: 2 } para armadura.
+  stats       Json?
+
+  @@map("character_items")
+}
+
+// ---------------------------------------------------------------------------
+// Mesa do Mestre
+// ---------------------------------------------------------------------------
+
+// Monstros e NPCs — visíveis e editáveis apenas por usuários com role GM.
+model MonsterOrNpc {
+  id            String   @id @default(cuid())
+  gmId          String
+  gm            User     @relation(fields: [gmId], references: [id], onDelete: Cascade)
+  name          String
+  wyrdnessLevel Int?
+  stats         Json?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("monsters_npcs")
+}
+
+// Histórico da mesa de rolagem (comandos /teste e /atacar).
+model DiceRollLog {
+  id          String   @id @default(cuid())
+  characterId String
+  character   CharacterSheet @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  command     String
+  breakdown   String
+  result      Int
+  createdAt   DateTime @default(now())
+
+  @@map("dice_roll_logs")
+}
