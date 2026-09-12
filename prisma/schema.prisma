@@ -78,30 +78,44 @@ model CharacterSheet {
   occupation String?
 
   // --- Etapa 5: Age (p.181) ---
-  age String?
+  age Int?
+
+  // --- Etapa 6: Experience, Advantages, and Disadvantages (p.183) ---
+  experience    Int   @default(0)
+  advantages    Json?
+  disadvantages Json?
+
+  // --- Etapa 7: Equipment (p.194) --- 5 Riches iniciais.
+  riches Int @default(5)
 
   // --- Etapa 8: character description (p.195) ---
   name        String?
-  description String?
+  traits      Json? // { quality, flaw } — p.195-196
+  personality String? // p.197
+  background  String? // p.198
+  description String? // aparência física, p.199
 
   // --- Etapa 9: other Attributes (p.201) ---
-  stamina             Int @default(0)
-  survivalPoints      Int @default(0)
+  potential           Int @default(1) // Fighting Potential (via Creativity), p.201
+  defense             Int @default(0) // Awareness + Reason + 5, p.201
+  speed               Int @default(0) // Awareness + Combativeness, p.202
+  stamina             Int @default(10)
+  survivalPoints      Int @default(3)
   sanity              Int @default(0)
   mentalResistance    Int @default(0)
   torment             Int @default(0)
   rout                Int @default(0)
   magicPoints         Int @default(0)
   ascensionDisgrace   Int @default(0)
-  riches              String?
 
-  // --- Etapa 10: Story Arc (p.205) — Atos 1/2/3, cada um com "Steps" ---
+  // --- Etapa 10: Story Arc (p.205) — Quest + 3 Atos ---
   storyArc Json?
 
-  // --- Etapa 6: Experience, Advantages, and Disadvantages (p.183) ---
-  experience    Int   @default(0)
-  advantages    Json?
-  disadvantages Json?
+  // Bolsa com escolhas/metadados de criação que não são "stats" finais da
+  // ficha, mas precisam ser lembrados para editar etapas anteriores
+  // (domínio bonificado pela Origem, escolhas de Secundário/Terciário da
+  // Ocupação, domínios de Other Pursuits, desvantagens de idade, etc).
+  creationChoices Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

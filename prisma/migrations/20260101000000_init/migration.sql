@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
 CREATE TYPE "Role" AS ENUM ('PLAYER', 'GM');
 
@@ -30,22 +33,29 @@ CREATE TABLE "character_sheets" (
     "color" TEXT,
     "origin" TEXT,
     "occupation" TEXT,
-    "age" TEXT,
+    "age" INTEGER,
+    "experience" INTEGER NOT NULL DEFAULT 0,
+    "advantages" JSONB,
+    "disadvantages" JSONB,
+    "riches" INTEGER NOT NULL DEFAULT 5,
     "name" TEXT,
+    "traits" JSONB,
+    "personality" TEXT,
+    "background" TEXT,
     "description" TEXT,
-    "stamina" INTEGER NOT NULL DEFAULT 0,
-    "survivalPoints" INTEGER NOT NULL DEFAULT 0,
+    "potential" INTEGER NOT NULL DEFAULT 1,
+    "defense" INTEGER NOT NULL DEFAULT 0,
+    "speed" INTEGER NOT NULL DEFAULT 0,
+    "stamina" INTEGER NOT NULL DEFAULT 10,
+    "survivalPoints" INTEGER NOT NULL DEFAULT 3,
     "sanity" INTEGER NOT NULL DEFAULT 0,
     "mentalResistance" INTEGER NOT NULL DEFAULT 0,
     "torment" INTEGER NOT NULL DEFAULT 0,
     "rout" INTEGER NOT NULL DEFAULT 0,
     "magicPoints" INTEGER NOT NULL DEFAULT 0,
     "ascensionDisgrace" INTEGER NOT NULL DEFAULT 0,
-    "riches" TEXT,
     "storyArc" JSONB,
-    "experience" INTEGER NOT NULL DEFAULT 0,
-    "advantages" JSONB,
-    "disadvantages" JSONB,
+    "creationChoices" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -138,3 +148,4 @@ ALTER TABLE "monsters_npcs" ADD CONSTRAINT "monsters_npcs_gmId_fkey" FOREIGN KEY
 
 -- AddForeignKey
 ALTER TABLE "dice_roll_logs" ADD CONSTRAINT "dice_roll_logs_characterId_fkey" FOREIGN KEY ("characterId") REFERENCES "character_sheets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

@@ -1,7 +1,8 @@
 import "server-only";
 import { cache } from "react";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { getSession } from "@/lib/session";
+import { prisma } from "@/lib/db";
 
 // Data Access Layer — centraliza a verificação de sessão/autorização.
 // Padrão recomendado em:
@@ -44,4 +45,19 @@ export const requireGM = cache(async (): Promise<CurrentUser> => {
     redirect("/ficha");
   }
   return user;
+});
+
+// Carrega uma ficha garantindo que pertence ao usuário logado. 404 se não
+// existir ou não for do usuário (não revelamos qual dos dois é o caso).
+// cache(): o layout e a page da mesma etapa chamam isso com o mesmo id —
+// dedup dentro do mesmo request.
+export const requireOwnedCharacter = cache(async (characterId: string) => {
+  const user = await requireUser();
+  const character = await prisma.characterSheet.findUnique({
+    where: { id: characterId },
+  });
+  if (!character || character.userId !== user.userId) {
+    notFound();
+  }
+  return character;
 });
