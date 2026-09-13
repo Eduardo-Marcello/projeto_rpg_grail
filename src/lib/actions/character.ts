@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { refresh } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser, requireOwnedCharacter } from "@/lib/dal";
 import {
@@ -52,6 +52,12 @@ async function advanceStep(characterId: string, step: number) {
       data: { creationStep: step },
     });
   }
+  // O layout do assistente (barra de progresso no topo) fica em cache no
+  // roteador do Next.js entre as etapas — sem isso, ele continua mostrando
+  // o progresso de quando a página carregou a primeira vez, mesmo depois
+  // de salvar uma etapa. Precisa invalidar explicitamente o "layout", não
+  // só a "page".
+  revalidatePath(`/ficha/${characterId}/etapa`, "layout");
 }
 
 // --- Etapa 1: Color (p.161) ---
@@ -157,31 +163,26 @@ export async function saveOccupationAction(
   }
 
   const touched = new Set([occ.primary, secondary, tertiary]);
-  const plus2 = [formData.get("plus2_1"), formData.get("plus2_2")];
-  const plus1 = [formData.get("plus1_1"), formData.get("plus1_2")];
-  const otherPursuits = [...plus2, ...plus1];
-  if (otherPursuits.some((d) => typeof d !== "string" || !d)) {
-    return { message: "Escolha os 4 Domínios de Outras Vivências (Other Pursuits)." };
+  // Um seletor por Domínio (Nenhum/+1/+2) em vez de 4 combos separados —
+  // assim é impossível escolher o mesmo Domínio duas vezes ou um Domínio
+  // já tocado pela Ocupação, e a UI sempre mostra o que já está escolhido.
+  const plus2: DomainKey[] = [];
+  const plus1: DomainKey[] = [];
+  for (const domain of DOMAINS) {
+    if (touched.has(domain.key)) continue;
+    const level = formData.get(`pursuit_${domain.key}`);
+    if (level === "2") plus2.push(domain.key);
+    else if (level === "1") plus1.push(domain.key);
   }
-  const distinctOP = new Set(otherPursuits as string[]);
-  if (distinctOP.size !== 4) {
-    return { message: "Os 4 Domínios de Outras Vivências precisam ser diferentes entre si." };
-  }
-  for (const d of otherPursuits as string[]) {
-    if (touched.has(d as DomainKey)) {
-      return {
-        message:
-          "Outras Vivências só pode melhorar Domínios que a Ocupação ainda não tocou (p.179).",
-      };
-    }
+  if (plus2.length !== 2 || plus1.length !== 2) {
+    return {
+      message: `Escolha exatamente 2 Domínios para +2 (selecionou ${plus2.length}) e 2 para +1 (selecionou ${plus1.length}).`,
+    };
   }
 
   const choices = fromJson<CreationChoices>(character.creationChoices, {});
   choices.occupation = { secondary: secondary as DomainKey, tertiary: tertiary as DomainKey };
-  choices.otherPursuits = {
-    plus2: plus2 as DomainKey[],
-    plus1: plus1 as DomainKey[],
-  };
+  choices.otherPursuits = { plus2, plus1 };
 
   await prisma.characterSheet.update({
     where: { id: character.id },

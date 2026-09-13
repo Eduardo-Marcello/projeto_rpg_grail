@@ -27,7 +27,7 @@ export default async function EtapaLayout({
 
   return (
     <div className="flex flex-col gap-6">
-      <ol className="flex flex-wrap gap-1 text-xs">
+      <ol className="flex list-none flex-wrap p-0 text-xs">
         {STEP_LABELS.map((label, i) => {
           const stepNum = i + 1; // 11 = "final"
           const reachable = stepNum <= character.creationStep + 1;
@@ -35,22 +35,26 @@ export default async function EtapaLayout({
             stepNum === 11
               ? `/ficha/${character.id}/etapa/final`
               : `/ficha/${character.id}/etapa/${stepNum}`;
+          // Borda em todos os estados (mesma espessura) para o tamanho do
+          // botão nunca mudar entre estados — evita reflow/sobreposição
+          // visual quando o passo atual muda. Margem (não gap) para o
+          // espaçamento nunca depender de flex-gap.
           const content = (
             <span
               className={
-                "rounded px-2 py-1 " +
+                "block whitespace-nowrap rounded border px-2 py-1 " +
                 (stepNum <= character.creationStep
-                  ? "bg-accent text-accent-foreground"
+                  ? "border-accent bg-accent text-accent-foreground"
                   : reachable
-                    ? "border border-accent text-accent"
-                    : "border border-border text-foreground/40")
+                    ? "border-accent text-accent"
+                    : "border-border text-foreground/40")
               }
             >
               {i + 1}. {label}
             </span>
           );
           return (
-            <li key={label}>
+            <li key={label} className="mr-1.5 mb-1.5">
               {reachable ? <Link href={href}>{content}</Link> : content}
             </li>
           );

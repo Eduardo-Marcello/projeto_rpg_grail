@@ -5,6 +5,8 @@ import { saveOccupationAction, type StepFormState } from "@/lib/actions/characte
 import { OCCUPATIONS, type OccupationKey } from "@/lib/game-data/occupations";
 import { DOMAINS, getDomain, type DomainKey } from "@/lib/game-data/domains";
 
+type PursuitLevel = 0 | 1 | 2;
+
 export function OccupationForm({
   characterId,
   currentOccupation,
@@ -30,16 +32,41 @@ export function OccupationForm({
   );
   const occ = occKey ? OCCUPATIONS.find((o) => o.key === occKey)! : null;
 
-  const otherPursuitOptions = useMemo(() => {
-    if (!occ) return DOMAINS;
-    const touched = new Set<DomainKey>([occ.primary]);
-    // Também exclui a lista completa das opções secundárias/terciárias
-    // (o domínio finalmente escolhido é excluído; os demais permanecem
-    // disponíveis já que Other Pursuits só precisa evitar os TRÊS
-    // domínios efetivamente escolhidos pela Ocupação, não as alternativas
-    // não escolhidas).
-    return DOMAINS.filter((d) => !touched.has(d.key));
-  }, [occ]);
+  const [secondary, setSecondary] = useState<DomainKey | null>(
+    (currentSecondary as DomainKey) ?? null,
+  );
+  const [tertiary, setTertiary] = useState<DomainKey | null>(
+    (currentTertiary as DomainKey) ?? null,
+  );
+
+  const initialPursuits = useMemo(() => {
+    const map: Partial<Record<DomainKey, PursuitLevel>> = {};
+    for (const d of currentPlus2) map[d as DomainKey] = 2;
+    for (const d of currentPlus1) map[d as DomainKey] = 1;
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [pursuits, setPursuits] = useState<Partial<Record<DomainKey, PursuitLevel>>>(
+    initialPursuits,
+  );
+
+  // Domínios que a Ocupação já tocou (Primário fixo + Secundário/Terciário
+  // escolhidos) — nunca aparecem na lista de Outras Vivências.
+  const touched = useMemo(
+    () => new Set<DomainKey>(occ ? [occ.primary, secondary, tertiary].filter(Boolean) as DomainKey[] : []),
+    [occ, secondary, tertiary],
+  );
+  const pursuitOptions = useMemo(
+    () => DOMAINS.filter((d) => !touched.has(d.key)),
+    [touched],
+  );
+
+  const plus2Count = Object.values(pursuits).filter((v) => v === 2).length;
+  const plus1Count = Object.values(pursuits).filter((v) => v === 1).length;
+
+  function setPursuit(domain: DomainKey, level: PursuitLevel) {
+    setPursuits((prev) => ({ ...prev, [domain]: level }));
+  }
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
@@ -48,7 +75,12 @@ export function OccupationForm({
         <select
           name="occupation"
           value={occKey ?? ""}
-          onChange={(e) => setOccKey(e.target.value as OccupationKey)}
+          onChange={(e) => {
+            setOccKey(e.target.value as OccupationKey);
+            setSecondary(null);
+            setTertiary(null);
+            setPursuits({});
+          }}
           required
           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
         >
@@ -84,7 +116,8 @@ export function OccupationForm({
                     type="radio"
                     name="secondary"
                     value={d}
-                    defaultChecked={currentSecondary === d}
+                    checked={secondary === d}
+                    onChange={() => setSecondary(d)}
                     required
                   />
                   {getDomain(d).name}
@@ -105,7 +138,8 @@ export function OccupationForm({
                     type="radio"
                     name="tertiary"
                     value={d}
-                    defaultChecked={currentTertiary === d}
+                    checked={tertiary === d}
+                    onChange={() => setTertiary(d)}
                     required
                   />
                   {getDomain(d).name}
@@ -119,26 +153,54 @@ export function OccupationForm({
             <p className="mb-2 text-xs text-foreground/60">
               Escolha 2 Domínios (ainda não tocados pela Ocupação) para +2
               pontos cada, e outros 2 Domínios distintos para +1 ponto cada.
+              Domínios já usados pela Ocupação não aparecem aqui.
             </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {["plus2_1", "plus2_2"].map((name, i) => (
-                <DomainSelect
-                  key={name}
-                  name={name}
-                  label={`+2 pontos (${i + 1})`}
-                  options={otherPursuitOptions}
-                  defaultValue={currentPlus2[i]}
-                />
-              ))}
-              {["plus1_1", "plus1_2"].map((name, i) => (
-                <DomainSelect
-                  key={name}
-                  name={name}
-                  label={`+1 ponto (${i + 1})`}
-                  options={otherPursuitOptions}
-                  defaultValue={currentPlus1[i]}
-                />
-              ))}
+            <p className="mb-2 text-sm">
+              +2 selecionados:{" "}
+              <span className={plus2Count === 2 ? "text-accent" : "font-semibold text-red-600"}>
+                {plus2Count}/2
+              </span>
+              {"  ·  "}
+              +1 selecionados:{" "}
+              <span className={plus1Count === 2 ? "text-accent" : "font-semibold text-red-600"}>
+                {plus1Count}/2
+              </span>
+            </p>
+            <div className="grid gap-1 sm:grid-cols-2">
+              {pursuitOptions.map((d) => {
+                const level = pursuits[d.key] ?? 0;
+                return (
+                  <div
+                    key={d.key}
+                    className="flex items-center justify-between gap-2 rounded-md border border-border bg-surface px-3 py-1.5 text-sm"
+                  >
+                    <span>{d.name}</span>
+                    <div className="flex gap-1 text-xs">
+                      {([0, 1, 2] as PursuitLevel[]).map((lvl) => (
+                        <label
+                          key={lvl}
+                          className={
+                            "cursor-pointer rounded border px-2 py-0.5 " +
+                            (level === lvl
+                              ? "border-accent bg-accent text-accent-foreground"
+                              : "border-border text-foreground/60")
+                          }
+                        >
+                          <input
+                            type="radio"
+                            name={`pursuit_${d.key}`}
+                            value={lvl}
+                            checked={level === lvl}
+                            onChange={() => setPursuit(d.key, lvl)}
+                            className="sr-only"
+                          />
+                          {lvl === 0 ? "—" : `+${lvl}`}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </>
@@ -148,44 +210,11 @@ export function OccupationForm({
 
       <button
         type="submit"
-        disabled={pending || !occ}
+        disabled={pending || !occ || !secondary || !tertiary || plus2Count !== 2 || plus1Count !== 2}
         className="self-start rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:opacity-60"
       >
         {pending ? "Salvando..." : "Continuar"}
       </button>
     </form>
-  );
-}
-
-function DomainSelect({
-  name,
-  label,
-  options,
-  defaultValue,
-}: {
-  name: string;
-  label: string;
-  options: { key: DomainKey; name: string }[];
-  defaultValue?: string;
-}) {
-  return (
-    <label className="flex flex-col gap-1 text-sm">
-      {label}
-      <select
-        name={name}
-        defaultValue={defaultValue ?? ""}
-        required
-        className="rounded-md border border-border bg-background px-2 py-1"
-      >
-        <option value="" disabled>
-          —
-        </option>
-        {options.map((d) => (
-          <option key={d.key} value={d.key}>
-            {d.name}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
