@@ -28,10 +28,14 @@ export function EquipmentPanel({
   characterId,
   riches,
   items,
+  showContinueButton = true,
 }: {
   characterId: string;
   riches: number;
   items: { id: string; name: string; stats: unknown }[];
+  // false quando usado na ficha já finalizada (Fase 2) — lá não há
+  // "próxima etapa" do assistente para avançar.
+  showContinueButton?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [category, setCategory] = useState<EquipmentCategory>("WEAPON");
@@ -125,14 +129,16 @@ export function EquipmentPanel({
         ))}
       </ul>
 
-      <form action={confirmEquipmentStepAction.bind(null, characterId)}>
-        <button
-          type="submit"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground"
-        >
-          Continuar
-        </button>
-      </form>
+      {showContinueButton && (
+        <form action={confirmEquipmentStepAction.bind(null, characterId)}>
+          <button
+            type="submit"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground"
+          >
+            Continuar
+          </button>
+        </form>
+      )}
     </div>
   );
 }

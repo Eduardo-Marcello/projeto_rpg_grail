@@ -100,13 +100,40 @@ model CharacterSheet {
   defense             Int @default(0) // Awareness + Reason + 5, p.201
   speed               Int @default(0) // Awareness + Combativeness, p.202
   stamina             Int @default(10)
-  survivalPoints      Int @default(3)
-  sanity              Int @default(0)
+  survivalPoints      Int @default(3) // máximo
+  survivalPointsCurrent Int? // atual (gasto em jogo) — null até a ficha ser finalizada
   mentalResistance    Int @default(0)
-  torment             Int @default(0)
-  rout                Int @default(0)
-  magicPoints         Int @default(0)
-  ascensionDisgrace   Int @default(0)
+
+  // --- Saúde (p.272-279) — ficha oficial (p.390) tem 19 caixas: 5 Bem /
+  // 5 Razoável / 4 Ruim / 4 Crítico / 1 Agonia. O texto corrido do
+  // capítulo diz "17 caixas por padrão" (p.272) — divergência do próprio
+  // livro; seguimos a ficha impressa, que bate com os exemplos numéricos
+  // do texto (6 de dano = "Razoável", 11 de dano = "Ruim"). Ver
+  // src/lib/health.ts.
+  healthBoxesChecked Int @default(0)
+
+  // --- Sanidade (p.280-291) — Torment/Rout são aflições nomeadas (tabela
+  // de 1D10, p.288-289), não números. Guardamos o nome da aflição atual
+  // (ou null se não houver nenhuma); um personagem só pode ter 1 de cada
+  // por vez (p.287).
+  torment String?
+  rout    String?
+
+  // --- Magia (p.310+, fora do escopo detalhado por ora — só o essencial
+  // da ficha) --- Pontos de Magia: só existem após a 1ª Disciplina de
+  // Magia (p.203); 6 iniciais.
+  magicPoints        Int  @default(0) // máximo
+  magicPointsCurrent Int? // atual
+  magicForm          String? // p.391 "Form"
+  magicBoon          String? // p.391 "Boon"
+  magicFamiliar      String? // p.391 "Familiar/Invocation"
+
+  // --- Ascensão/Desgraça (Character Advancement, p.210-231) — capítulo
+  // ainda não implementado em detalhe; guardamos só um progresso único
+  // (a ficha oficial tem 3 trilhas de 14 caixas cada, Premise/Fall,
+  // Awakening/Ruin, Rise/Infamy, Ascension/Disgrace — simplificado por
+  // ora, sinalizado ao usuário).
+  ascensionDisgrace Int @default(0)
 
   // --- Etapa 10: Story Arc (p.205) — Quest + 3 Atos ---
   storyArc Json?

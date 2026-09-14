@@ -20,14 +20,22 @@ export default async function FichaPage() {
             em andamento.
           </p>
         </div>
-        <form action={createCharacterAction}>
-          <button
-            type="submit"
-            className="shrink-0 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground"
+        <div className="flex shrink-0 gap-2">
+          <Link
+            href="/ficha/importar"
+            className="rounded-md border border-accent px-4 py-2 text-sm font-medium text-accent"
           >
-            Criar nova ficha
-          </button>
-        </form>
+            Importar .json
+          </Link>
+          <form action={createCharacterAction}>
+            <button
+              type="submit"
+              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground"
+            >
+              Criar nova ficha
+            </button>
+          </form>
+        </div>
       </div>
 
       {characters.length === 0 ? (
