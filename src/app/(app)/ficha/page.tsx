@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/dal";
 import { prisma } from "@/lib/db";
 import { createCharacterAction } from "@/lib/actions/character";
+import { DeleteCharacterButton } from "@/components/sheet/DeleteCharacterButton";
 
 export default async function FichaPage() {
   const user = await requireUser();
@@ -51,16 +52,21 @@ export default async function FichaPage() {
                 ? `/ficha/${c.id}`
                 : `/ficha/${c.id}/etapa/${c.creationStep + 1}`;
             return (
-              <li key={c.id}>
-                <Link
-                  href={href}
-                  className="flex items-center justify-between rounded-md border border-border bg-surface px-4 py-3 text-sm hover:border-accent"
-                >
+              <li
+                key={c.id}
+                className="flex items-center justify-between gap-2 rounded-md border border-border bg-surface px-4 py-3 text-sm hover:border-accent"
+              >
+                <Link href={href} className="flex flex-1 items-center justify-between gap-4">
                   <span>{c.name ?? "(sem nome ainda)"}</span>
                   <span className="text-foreground/60">
                     {c.status === "COMPLETE" ? "Completa" : `Rascunho — etapa ${c.creationStep}/10`}
                   </span>
                 </Link>
+                <DeleteCharacterButton
+                  characterId={c.id}
+                  characterName={c.name ?? ""}
+                  className="shrink-0 text-xs text-foreground/40 hover:text-red-600"
+                />
               </li>
             );
           })}

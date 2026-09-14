@@ -42,6 +42,16 @@ export async function createCharacterAction() {
   redirect(`/ficha/${character.id}/etapa/1`);
 }
 
+// Apaga a ficha (rascunho ou completa) e tudo que depende dela (Vias,
+// Domínios, Itens, rolagens — onDelete: Cascade no schema). Irreversível;
+// a confirmação fica a cargo da UI (ver DeleteCharacterButton).
+export async function deleteCharacterAction(characterId: string) {
+  const character = await requireOwnedCharacter(characterId);
+  await prisma.characterSheet.delete({ where: { id: character.id } });
+  revalidatePath("/ficha");
+  redirect("/ficha");
+}
+
 async function advanceStep(characterId: string, step: number) {
   const character = await prisma.characterSheet.findUniqueOrThrow({
     where: { id: characterId },

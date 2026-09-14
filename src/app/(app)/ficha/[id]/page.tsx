@@ -14,6 +14,7 @@ import { AdvantageShop } from "@/components/sheet/AdvantageShop";
 import { BasicInfoForm } from "@/components/sheet/BasicInfoForm";
 import { StoryArcEditForm } from "@/components/sheet/StoryArcEditForm";
 import { ImportUpdateForm } from "@/components/sheet/ImportUpdateForm";
+import { DeleteCharacterButton } from "@/components/sheet/DeleteCharacterButton";
 import { EquipmentPanel } from "@/components/wizard/EquipmentPanel";
 
 export default async function CharacterViewPage({
@@ -73,6 +74,7 @@ export default async function CharacterViewPage({
           >
             Exportar .json
           </a>
+          <DeleteCharacterButton characterId={character.id} characterName={character.name ?? ""} />
         </div>
       </div>
 
