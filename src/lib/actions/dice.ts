@@ -14,7 +14,7 @@ import type { Way } from "@/generated/prisma/enums";
 // Sempre recarrega Domínio/Via do banco em vez de confiar em valores vindos
 // do formulário, para o resultado bater com a ficha salva.
 
-async function afterRoll(characterId: string) {
+function afterRoll() {
   revalidatePath("/mesa");
   refresh();
 }
@@ -83,7 +83,7 @@ export async function rollTestAction(characterId: string, formData: FormData) {
       result: roll.total,
     },
   });
-  await afterRoll(character.id);
+  afterRoll();
 }
 
 // --- /atacar ---
@@ -158,5 +158,5 @@ export async function rollAttackAction(characterId: string, formData: FormData) 
       result: roll.attackScore,
     },
   });
-  await afterRoll(character.id);
+  afterRoll();
 }

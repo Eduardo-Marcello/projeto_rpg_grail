@@ -44,8 +44,7 @@ export default async function MesaPage({
   const character =
     characters.find((c) => c.id === personagem) ?? characters[0];
 
-  const [wayRows, domainRows, items, rolls] = await Promise.all([
-    prisma.characterWay.findMany({ where: { characterId: character.id } }),
+  const [domainRows, items, rolls] = await Promise.all([
     prisma.characterDomain.findMany({ where: { characterId: character.id } }),
     prisma.characterItem.findMany({
       where: { characterId: character.id, type: "WEAPON" },
