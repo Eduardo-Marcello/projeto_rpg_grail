@@ -5,6 +5,7 @@ import { saveAgeAction, type StepFormState } from "@/lib/actions/character";
 import { getAgeBand } from "@/lib/game-data/age";
 import { DOMAINS, type DomainKey } from "@/lib/game-data/domains";
 import { DISADVANTAGES, type DisadvantageKey } from "@/lib/game-data/disadvantages";
+import { ageDisadvantageTotal } from "@/lib/character-calc";
 
 export function AgeForm({
   characterId,
@@ -34,14 +35,17 @@ export function AgeForm({
 
   const band = typeof age === "number" && age >= 15 ? getAgeBand(age) : null;
 
+  const disadvantageCosts = useMemo(
+    () => Object.fromEntries(DISADVANTAGES.map((d) => [d.key, d])),
+    [],
+  );
   const total = useMemo(() => {
-    let sum = 0;
-    for (const key of checked) {
-      const def = DISADVANTAGES.find((d) => d.key === key)!;
-      sum += def.cost + (twoX.has(key) ? def.repeatCost ?? 0 : 0);
-    }
-    return sum;
-  }, [checked, twoX]);
+    const selections = Array.from(checked).map((key) => ({
+      key,
+      times: twoX.has(key) ? 2 : 1,
+    }));
+    return ageDisadvantageTotal(selections, disadvantageCosts);
+  }, [checked, twoX, disadvantageCosts]);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">

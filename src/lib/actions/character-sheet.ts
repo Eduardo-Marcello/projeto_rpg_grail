@@ -183,6 +183,7 @@ export async function removeDisciplineAction(
   });
   if (!domain) return;
   const disciplines = fromJson<{ name: string; rating: number }[]>(domain.disciplines, []);
+  if (!Number.isInteger(index) || index < 0 || index >= disciplines.length) return;
   disciplines.splice(index, 1);
   await prisma.characterDomain.update({
     where: { id: domain.id },

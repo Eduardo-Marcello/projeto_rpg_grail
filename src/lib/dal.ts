@@ -39,12 +39,20 @@ export const requireUser = cache(async (): Promise<CurrentUser> => {
 });
 
 // Exige sessão válida E papel de Mestre; redireciona jogadores para /ficha.
+// O papel é reconferido no banco (não só no cookie de sessão): promover/
+// rebaixar é feito direto no banco (ver auth.ts), e um cookie de sessão dura
+// até 30 dias, então um GM rebaixado não pode continuar usando o papel antigo
+// só porque a sessão dele ainda não expirou.
 export const requireGM = cache(async (): Promise<CurrentUser> => {
   const user = await requireUser();
-  if (user.role !== "GM") {
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.userId },
+    select: { role: true },
+  });
+  if (!dbUser || dbUser.role !== "GM") {
     redirect("/ficha");
   }
-  return user;
+  return { ...user, role: dbUser.role };
 });
 
 // Carrega uma ficha garantindo que pertence ao usuário logado. 404 se não

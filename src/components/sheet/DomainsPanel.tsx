@@ -36,7 +36,10 @@ export function DomainsPanel({
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
         {sorted
-          .filter((d) => d.rating > 0)
+          // Um Domínio com rating 0 mas com Disciplinas registradas (ver
+          // recomputeDomains, character-domains.ts) continua aparecendo —
+          // senão a Disciplina fica salva mas inacessível na ficha.
+          .filter((d) => d.rating > 0 || d.disciplines.length > 0)
           .map((d) => (
             <DomainCard
               key={d.domainKey}
@@ -129,8 +132,8 @@ function DomainCard({
             type="button"
             disabled={isPending || !newName.trim()}
             onClick={() =>
-              startTransition(() => {
-                addDisciplineAction(characterId, domain.domainKey, newName, newRating);
+              startTransition(async () => {
+                await addDisciplineAction(characterId, domain.domainKey, newName, newRating);
                 setNewName("");
                 setNewRating(1);
               })

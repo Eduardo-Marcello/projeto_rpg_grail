@@ -18,12 +18,6 @@ const CATEGORY_LABELS: Record<EquipmentCategory, string> = {
   WYRDNESS_PROTECTION: "Proteções contra a Wyrdness",
 };
 
-function itemType(category: EquipmentCategory): "WEAPON" | "ARMOR" | "EQUIPMENT" {
-  if (category === "WEAPON") return "WEAPON";
-  if (category === "ARMOR" || category === "SHIELD") return "ARMOR";
-  return "EQUIPMENT";
-}
-
 export function EquipmentPanel({
   characterId,
   riches,
@@ -111,15 +105,7 @@ export function EquipmentPanel({
               type="button"
               disabled={isPending || riches < item.cost}
               onClick={() =>
-                startTransition(() =>
-                  addEquipmentItemAction(
-                    characterId,
-                    item.key,
-                    item.cost,
-                    itemType(item.category),
-                    item.name,
-                  ),
-                )
+                startTransition(() => addEquipmentItemAction(characterId, item.key))
               }
               className="shrink-0 rounded-md border border-accent px-2 py-1 text-xs text-accent disabled:opacity-40"
             >

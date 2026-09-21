@@ -79,10 +79,23 @@ export async function recomputeDomains(characterId: string): Promise<void> {
     existing.map((row) => [row.domainKey, row.disciplines]),
   );
 
+  // Domínios com Disciplinas já registradas (Fase 2) não podem sumir só
+  // porque uma etapa anterior foi reeditada e o Domínio deixou de receber
+  // pontos estruturais — a Disciplina foi escolha do jogador depois da
+  // criação e precisa sobreviver ao recálculo (rating 0 é mantido).
+  const domainsWithDisciplines = new Set(
+    existing
+      .filter((row) => fromJson<{ name: string; rating: number }[]>(row.disciplines, []).length > 0)
+      .map((row) => row.domainKey),
+  );
+  for (const domainKey of domainsWithDisciplines) {
+    if (!totals.has(domainKey as DomainKey)) totals.set(domainKey as DomainKey, 0);
+  }
+
   await prisma.$transaction([
     prisma.characterDomain.deleteMany({ where: { characterId } }),
     ...Array.from(totals.entries())
-      .filter(([, rating]) => rating > 0)
+      .filter(([domainKey, rating]) => rating > 0 || domainsWithDisciplines.has(domainKey))
       .map(([domainKey, rating]) =>
         prisma.characterDomain.create({
           data: {
@@ -100,17 +113,4 @@ export async function recomputeDomains(characterId: string): Promise<void> {
 export function originBonusDomainOptions(originKey: OriginKey) {
   const origin = getOrigin(originKey);
   return origin.bonusWay;
-}
-
-export function ageDisadvantageTotal(
-  selections: { key: string; times: number }[],
-  disadvantageCosts: Record<string, { cost: number; repeatCost?: number }>,
-): number {
-  return selections.reduce((sum, sel) => {
-    const def = disadvantageCosts[sel.key];
-    if (!def) return sum;
-    let total = def.cost;
-    if (sel.times > 1 && def.repeatCost) total += def.repeatCost;
-    return sum + total;
-  }, 0);
 }

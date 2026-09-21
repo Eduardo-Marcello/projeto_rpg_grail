@@ -15,6 +15,7 @@ import { ORIGINS } from "@/lib/game-data/origins";
 import { DOMAINS, domainsForWay, type DomainKey } from "@/lib/game-data/domains";
 import { OCCUPATIONS } from "@/lib/game-data/occupations";
 import { getAgeBand } from "@/lib/game-data/age";
+import { getEquipmentItem } from "@/lib/game-data/equipment";
 import {
   DISADVANTAGES,
   type DisadvantageKey,
@@ -27,6 +28,7 @@ import {
   computeSpeed,
   BASE_STAMINA,
   BASE_SURVIVAL_POINTS,
+  ageDisadvantageTotal,
 } from "@/lib/character-calc";
 import { sumStatDeltas, type Selection } from "@/lib/game-data/stat-modifiers";
 import type { Way } from "@/generated/prisma/enums";
@@ -237,10 +239,10 @@ export async function saveAgeAction(
         ageDisadvantages.push({ key: def.key, times });
       }
     }
-    const total = ageDisadvantages.reduce((sum, sel) => {
-      const def = DISADVANTAGES.find((d) => d.key === sel.key)!;
-      return sum + def.cost + (sel.times > 1 ? def.repeatCost ?? 0 : 0);
-    }, 0);
+    const total = ageDisadvantageTotal(
+      ageDisadvantages,
+      Object.fromEntries(DISADVANTAGES.map((d) => [d.key, d])),
+    );
     if (total !== band.disadvantagePoints) {
       return {
         message: `As Desvantagens de idade escolhidas somam ${total} pontos; precisam somar exatamente ${band.disadvantagePoints} (p.181).`,
@@ -290,7 +292,14 @@ export async function saveExperienceAction(
     }
   }
 
-  const bonusFromCreationOfAvalon = Number(formData.get("bonusXp") ?? 0) || 0;
+  // "XP bônus da Criação de Avalon" é um valor que a mesa define (não há
+  // teto fixo no livro para validar contra — CLAUDE.md proíbe inventar um
+  // limite de jogo), mas negativo/fracionário não faz sentido em nenhuma
+  // leitura da regra, então isso é sempre bloqueado.
+  const bonusFromCreationOfAvalon = Math.max(
+    0,
+    Math.trunc(Number(formData.get("bonusXp") ?? 0) || 0),
+  );
 
   const disCost = disadvantages.reduce((sum, sel) => {
     const def = DISADVANTAGES.find((d) => d.key === sel.key)!;
@@ -338,22 +347,27 @@ export async function saveExperienceAction(
 }
 
 // --- Etapa 7: Equipment (p.194) ---
-export async function addEquipmentItemAction(
-  characterId: string,
-  itemKey: string,
-  cost: number,
-  type: "WEAPON" | "ARMOR" | "EQUIPMENT",
-  name: string,
-) {
+export async function addEquipmentItemAction(characterId: string, itemKey: string) {
   const character = await requireOwnedCharacter(characterId);
-  if (character.riches < cost) return;
+  // Preço/tipo/nome vêm do catálogo, nunca do cliente — um cost ou type
+  // vindos direto do formulário poderiam ser adulterados numa chamada
+  // direta à Server Action (ex: cost negativo aumentaria as Riquezas).
+  const def = getEquipmentItem(itemKey);
+  if (!def) return;
+  const type = def.category === "WEAPON" ? "WEAPON" : def.category === "ARMOR" || def.category === "SHIELD" ? "ARMOR" : "EQUIPMENT";
+  if (character.riches < def.cost) return;
   await prisma.$transaction([
     prisma.characterSheet.update({
       where: { id: character.id },
-      data: { riches: { decrement: cost } },
+      data: { riches: { decrement: def.cost } },
     }),
     prisma.characterItem.create({
-      data: { characterId: character.id, type, name, stats: { key: itemKey, cost } },
+      data: {
+        characterId: character.id,
+        type,
+        name: def.name,
+        stats: { key: itemKey, cost: def.cost },
+      },
     }),
   ]);
   refresh();

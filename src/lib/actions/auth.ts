@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@/generated/prisma/client";
 import { getSession } from "@/lib/session";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import {
@@ -36,13 +37,17 @@ export async function registerAction(
     return { message: "Esse nome de usuário já está em uso." };
   }
 
-  const userCount = await prisma.user.count();
-  const role = userCount === 0 ? "GM" : "PLAYER";
-
   const passwordHash = await hashPassword(password);
-  const user = await prisma.user.create({
-    data: { username, passwordHash, role },
-  });
+  // Isolamento Serializable: sem isso, duas contas registradas quase ao
+  // mesmo tempo poderiam ler userCount === 0 cada uma e as duas virarem GM.
+  const user = await prisma.$transaction(
+    async (tx) => {
+      const userCount = await tx.user.count();
+      const role = userCount === 0 ? "GM" : "PLAYER";
+      return tx.user.create({ data: { username, passwordHash, role } });
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
 
   const session = await getSession();
   session.userId = user.id;

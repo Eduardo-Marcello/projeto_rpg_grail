@@ -68,6 +68,20 @@ export function OccupationForm({
     setPursuits((prev) => ({ ...prev, [domain]: level }));
   }
 
+  // Se o Domínio escolhido agora como Secundário/Terciário já tinha uma
+  // seleção em Outras Vivências, ela precisa sumir junto — senão ela some da
+  // lista visível (pursuitOptions filtra Domínios "touched") mas continua
+  // contando em plus2Count/plus1Count, deixando o botão "Continuar"
+  // liberado com uma contagem que o servidor não vê (e rejeita).
+  function clearStalePursuit(domain: DomainKey) {
+    setPursuits((prev) => {
+      if (!(domain in prev)) return prev;
+      const next = { ...prev };
+      delete next[domain];
+      return next;
+    });
+  }
+
   return (
     <form action={formAction} className="flex flex-col gap-6">
       <div>
@@ -117,7 +131,10 @@ export function OccupationForm({
                     name="secondary"
                     value={d}
                     checked={secondary === d}
-                    onChange={() => setSecondary(d)}
+                    onChange={() => {
+                      setSecondary(d);
+                      clearStalePursuit(d);
+                    }}
                     required
                   />
                   {getDomain(d).name}
@@ -139,7 +156,10 @@ export function OccupationForm({
                     name="tertiary"
                     value={d}
                     checked={tertiary === d}
-                    onChange={() => setTertiary(d)}
+                    onChange={() => {
+                      setTertiary(d);
+                      clearStalePursuit(d);
+                    }}
                     required
                   />
                   {getDomain(d).name}

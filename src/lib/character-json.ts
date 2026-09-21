@@ -30,7 +30,6 @@ const OMIT_FIELDS = new Set([
   "userId",
   "createdAt",
   "updatedAt",
-  "creationChoices",
 ]);
 
 export async function exportCharacterToJson(characterId: string): Promise<CharacterJson> {
@@ -97,6 +96,10 @@ const IMPORTABLE_SCALAR_FIELDS = [
   "magicFamiliar",
   "ascensionDisgrace",
   "storyArc",
+  // Sem isso, reimportar uma ficha e depois salvar qualquer etapa do
+  // assistente ou gastar XP em Domínio (que recalculam os Domínios a partir
+  // de creationChoices) apaga os Domínios/Disciplinas recém-importados.
+  "creationChoices",
 ] as const;
 
 export function sanitizeCharacterJson(data: unknown): CharacterJson | null {
