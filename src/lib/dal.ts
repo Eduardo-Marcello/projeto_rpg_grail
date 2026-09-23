@@ -69,3 +69,17 @@ export const requireOwnedCharacter = cache(async (characterId: string) => {
   }
   return character;
 });
+
+// Carrega um monstro/NPC exigindo papel de Mestre. Diferente da ficha de
+// personagem, monstros/NPCs são compartilhados entre todos os Mestres da
+// mesa (decisão do usuário) — não há checagem de "dono", só de papel.
+export const requireMonster = cache(async (monsterId: string) => {
+  await requireGM();
+  const monster = await prisma.monsterOrNpc.findUnique({
+    where: { id: monsterId },
+  });
+  if (!monster) {
+    notFound();
+  }
+  return monster;
+});
