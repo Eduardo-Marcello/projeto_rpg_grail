@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { requireGM, requireMonster } from "@/lib/dal";
 import { fromJson, toJsonInput } from "@/lib/character-domains";
 import { EMPTY_MONSTER_STATS, type MonsterStats } from "@/lib/monster-stats";
+import { sanitizeText } from "@/lib/sanitize-text";
 
 // Cadastro de monstros/NPCs (Fase 5) — p.367-369 do corebook. Compartilhado
 // entre todos os Mestres da mesa (ver requireMonster em dal.ts).
@@ -26,7 +27,10 @@ export async function createMonsterAction(formData: FormData) {
   const monster = await prisma.monsterOrNpc.create({
     data: {
       gmId: gm.userId,
-      name: typeof name === "string" && name.trim() ? name.trim() : "Novo monstro/NPC",
+      name:
+        typeof name === "string" && name.trim()
+          ? sanitizeText(name.trim())
+          : "Novo monstro/NPC",
       stats: toJsonInput(EMPTY_MONSTER_STATS),
     },
   });
@@ -60,13 +64,15 @@ export async function updateMonsterBasicsAction(monsterId: string, formData: For
   await prisma.monsterOrNpc.update({
     where: { id: monster.id },
     data: {
-      name: typeof name === "string" && name.trim() ? name.trim() : monster.name,
+      name:
+        typeof name === "string" && name.trim() ? sanitizeText(name.trim()) : monster.name,
       wyrdnessLevel: level != null && Number.isFinite(level) ? level : null,
-      notes: typeof notes === "string" ? notes : null,
+      notes: typeof notes === "string" ? sanitizeText(notes) : null,
       stats: toJsonInput({
         ...stats,
-        overview: typeof overview === "string" ? overview : stats.overview,
-        description: typeof description === "string" ? description : stats.description,
+        overview: typeof overview === "string" ? sanitizeText(overview) : stats.overview,
+        description:
+          typeof description === "string" ? sanitizeText(description) : stats.description,
       } satisfies MonsterStats),
     },
   });
@@ -100,7 +106,8 @@ export async function updateMonsterCombatStatsAction(monsterId: string, formData
       stats: toJsonInput({
         ...stats,
         attack: num("attack", stats.attack),
-        weaponLabel: typeof weaponLabel === "string" ? weaponLabel : stats.weaponLabel,
+        weaponLabel:
+          typeof weaponLabel === "string" ? sanitizeText(weaponLabel) : stats.weaponLabel,
         damage: num("damage", stats.damage),
         defense: num("defense", stats.defense),
         protection: num("protection", stats.protection),
@@ -120,7 +127,10 @@ export async function addTraitAction(monsterId: string, name: string, descriptio
   const monster = await requireMonster(monsterId);
   if (!name.trim()) return;
   const stats = loadStats(monster);
-  stats.traits.push({ name: name.trim(), description: description.trim() });
+  stats.traits.push({
+    name: sanitizeText(name.trim()),
+    description: sanitizeText(description.trim()),
+  });
   await prisma.monsterOrNpc.update({
     where: { id: monster.id },
     data: { stats: toJsonInput(stats) },
@@ -149,7 +159,10 @@ export async function addSpecialAbilityAction(
   const monster = await requireMonster(monsterId);
   if (!name.trim()) return;
   const stats = loadStats(monster);
-  stats.specialAbilities.push({ name: name.trim(), description: description.trim() });
+  stats.specialAbilities.push({
+    name: sanitizeText(name.trim()),
+    description: sanitizeText(description.trim()),
+  });
   await prisma.monsterOrNpc.update({
     where: { id: monster.id },
     data: { stats: toJsonInput(stats) },
@@ -174,7 +187,10 @@ export async function addSkillAction(monsterId: string, name: string, rating: nu
   const monster = await requireMonster(monsterId);
   if (!name.trim()) return;
   const stats = loadStats(monster);
-  stats.skills.push({ name: name.trim(), rating: Number.isFinite(rating) ? rating : 0 });
+  stats.skills.push({
+    name: sanitizeText(name.trim()),
+    rating: Number.isFinite(rating) ? rating : 0,
+  });
   await prisma.monsterOrNpc.update({
     where: { id: monster.id },
     data: { stats: toJsonInput(stats) },

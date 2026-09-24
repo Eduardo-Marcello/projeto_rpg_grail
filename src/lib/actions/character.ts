@@ -31,6 +31,7 @@ import {
   ageDisadvantageTotal,
 } from "@/lib/character-calc";
 import { sumStatDeltas, type Selection } from "@/lib/game-data/stat-modifiers";
+import { sanitizeText } from "@/lib/sanitize-text";
 import type { Way } from "@/generated/prisma/enums";
 
 export type StepFormState = { message?: string } | undefined;
@@ -440,14 +441,14 @@ export async function saveDescriptionAction(
   await prisma.characterSheet.update({
     where: { id: character.id },
     data: {
-      name: name.trim(),
+      name: sanitizeText(name.trim()),
       traits: {
-        quality: { way: qualityWay, word: qualityWord },
-        flaw: { way: flawWay, word: flawWord },
+        quality: { way: qualityWay, word: sanitizeText(qualityWord.trim()) },
+        flaw: { way: flawWay, word: sanitizeText(flawWord.trim()) },
       },
-      personality: typeof personality === "string" ? personality : null,
-      background: typeof background === "string" ? background : null,
-      description: typeof description === "string" ? description : null,
+      personality: typeof personality === "string" ? sanitizeText(personality) : null,
+      background: typeof background === "string" ? sanitizeText(background) : null,
+      description: typeof description === "string" ? sanitizeText(description) : null,
     },
   });
   await advanceStep(character.id, 8);
@@ -501,11 +502,11 @@ export async function saveStoryArcAction(
     where: { id: character.id },
     data: {
       storyArc: {
-        quest: typeof quest === "string" ? quest : "",
+        quest: typeof quest === "string" ? sanitizeText(quest) : "",
         acts: [
-          typeof act1 === "string" ? act1 : "",
-          typeof act2 === "string" ? act2 : "",
-          typeof act3 === "string" ? act3 : "",
+          typeof act1 === "string" ? sanitizeText(act1) : "",
+          typeof act2 === "string" ? sanitizeText(act2) : "",
+          typeof act3 === "string" ? sanitizeText(act3) : "",
         ],
       },
     },

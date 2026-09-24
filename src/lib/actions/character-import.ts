@@ -8,6 +8,7 @@ import {
   sanitizeCharacterJson,
   pickImportableCharacterFields,
 } from "@/lib/character-json";
+import { sanitizeJsonDeep } from "@/lib/sanitize-text";
 import type { Way } from "@/generated/prisma/enums";
 import type { ItemType } from "@/generated/prisma/enums";
 
@@ -25,7 +26,7 @@ async function parseUploadedJson(formData: FormData): Promise<
   }
   let parsed: unknown;
   try {
-    parsed = JSON.parse(await file.text());
+    parsed = sanitizeJsonDeep(JSON.parse(await file.text()));
   } catch {
     return { ok: false, message: "Arquivo não é um .json válido." };
   }

@@ -13,6 +13,7 @@ import { HEALTH_TOTAL_BOXES } from "@/lib/health";
 import { ADVANTAGES, type AdvantageKey } from "@/lib/game-data/advantages";
 import { DOMAINS, type DomainKey } from "@/lib/game-data/domains";
 import type { Selection } from "@/lib/game-data/stat-modifiers";
+import { sanitizeText } from "@/lib/sanitize-text";
 
 // Edição pós-criação da ficha completa (Fase 2). Diferente das ações do
 // assistente (src/lib/actions/character.ts), estas não avançam etapa nem
@@ -37,10 +38,11 @@ export async function updateBasicInfoAction(characterId: string, formData: FormD
   await prisma.characterSheet.update({
     where: { id: character.id },
     data: {
-      name: typeof name === "string" && name.trim() ? name.trim() : character.name,
-      personality: typeof personality === "string" ? personality : null,
-      background: typeof background === "string" ? background : null,
-      description: typeof description === "string" ? description : null,
+      name:
+        typeof name === "string" && name.trim() ? sanitizeText(name.trim()) : character.name,
+      personality: typeof personality === "string" ? sanitizeText(personality) : null,
+      background: typeof background === "string" ? sanitizeText(background) : null,
+      description: typeof description === "string" ? sanitizeText(description) : null,
     },
   });
   await afterEdit(character.id);
@@ -57,11 +59,11 @@ export async function updateStoryArcAction(characterId: string, formData: FormDa
     where: { id: character.id },
     data: {
       storyArc: {
-        quest: typeof quest === "string" ? quest : "",
+        quest: typeof quest === "string" ? sanitizeText(quest) : "",
         acts: [
-          typeof act1 === "string" ? act1 : "",
-          typeof act2 === "string" ? act2 : "",
-          typeof act3 === "string" ? act3 : "",
+          typeof act1 === "string" ? sanitizeText(act1) : "",
+          typeof act2 === "string" ? sanitizeText(act2) : "",
+          typeof act3 === "string" ? sanitizeText(act3) : "",
         ],
       },
     },
@@ -112,9 +114,9 @@ export async function updateMagicInfoAction(characterId: string, formData: FormD
   await prisma.characterSheet.update({
     where: { id: character.id },
     data: {
-      magicForm: typeof form === "string" ? form : null,
-      magicBoon: typeof boon === "string" ? boon : null,
-      magicFamiliar: typeof familiar === "string" ? familiar : null,
+      magicForm: typeof form === "string" ? sanitizeText(form) : null,
+      magicBoon: typeof boon === "string" ? sanitizeText(boon) : null,
+      magicFamiliar: typeof familiar === "string" ? sanitizeText(familiar) : null,
     },
   });
   await afterEdit(character.id);
@@ -164,7 +166,7 @@ export async function addDisciplineAction(
   if (!domain || !name.trim()) return;
   const disciplines = fromJson<{ name: string; rating: number }[]>(domain.disciplines, []);
   if (disciplines.length >= 3) return;
-  disciplines.push({ name: name.trim(), rating: clamp(rating, 1, 10) });
+  disciplines.push({ name: sanitizeText(name.trim()), rating: clamp(rating, 1, 10) });
   await prisma.characterDomain.update({
     where: { id: domain.id },
     data: { disciplines },
