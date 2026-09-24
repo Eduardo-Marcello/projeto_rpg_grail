@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { rollAttackAction } from "@/lib/actions/dice";
 import { stanceLabel, type Stance } from "@/lib/dice";
+import { DiceRollAnimation } from "@/components/dice/DiceRollAnimation";
+import { withMinDelay } from "@/lib/min-delay";
 import type { DomainKey } from "@/lib/game-data/domains";
 
 interface DomainOption {
@@ -56,7 +58,9 @@ export function AttackRollForm({
         if (disciplineIndex !== "") formData.set("disciplineIndex", disciplineIndex);
         formData.set("stance", stance);
         if (itemId) formData.set("itemId", itemId);
-        startTransition(() => rollAttackAction(characterId, formData));
+        startTransition(async () => {
+          await withMinDelay(rollAttackAction(characterId, formData), 700);
+        });
       }}
     >
       <h3 className="font-semibold">/atacar</h3>
@@ -132,13 +136,16 @@ export function AttackRollForm({
         </select>
       </label>
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="self-start rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
-      >
-        {isPending ? "Rolando..." : "Atacar"}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={isPending}
+          className="self-start rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
+        >
+          {isPending ? "Rolando..." : "Atacar"}
+        </button>
+        <DiceRollAnimation active={isPending} />
+      </div>
     </form>
   );
 }

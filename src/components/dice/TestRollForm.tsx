@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { rollTestAction } from "@/lib/actions/dice";
 import { DIFFICULTY_THRESHOLDS } from "@/lib/dice";
+import { DiceRollAnimation } from "@/components/dice/DiceRollAnimation";
+import { withMinDelay } from "@/lib/min-delay";
 import type { DomainKey } from "@/lib/game-data/domains";
 
 interface DomainOption {
@@ -36,7 +38,9 @@ export function TestRollForm({
         formData.set("domainKey", domainKey);
         if (disciplineIndex !== "") formData.set("disciplineIndex", disciplineIndex);
         if (threshold !== "") formData.set("threshold", threshold);
-        startTransition(() => rollTestAction(characterId, formData));
+        startTransition(async () => {
+          await withMinDelay(rollTestAction(characterId, formData), 700);
+        });
       }}
     >
       <h3 className="font-semibold">/teste [tipo]</h3>
@@ -86,9 +90,10 @@ export function TestRollForm({
         Limiar de Dificuldade anunciado pelo mestre (opcional)
         <input
           type="number"
+          maxLength={2}
           className="rounded-md border border-border bg-background px-2 py-1.5"
           value={threshold}
-          onChange={(e) => setThreshold(e.target.value)}
+          onChange={(e) => setThreshold(e.target.value.slice(0, 2))}
           placeholder="ex: 11"
         />
       </label>
@@ -96,13 +101,16 @@ export function TestRollForm({
         {DIFFICULTY_THRESHOLDS.map((t) => `${t.level} ${t.value}`).join(" · ")}
       </p>
 
-      <button
-        type="submit"
-        disabled={isPending || !domainKey}
-        className="self-start rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
-      >
-        {isPending ? "Rolando..." : "Rolar"}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={isPending || !domainKey}
+          className="self-start rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
+        >
+          {isPending ? "Rolando..." : "Rolar"}
+        </button>
+        <DiceRollAnimation active={isPending} />
+      </div>
     </form>
   );
 }

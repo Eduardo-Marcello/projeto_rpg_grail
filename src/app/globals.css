@@ -36,3 +36,31 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Animação do d10 caindo/rolando na Mesa de Dados (ver DiceRollAnimation) */
+@keyframes dice-fall {
+  0% {
+    transform: translateY(-24px) rotate(0deg);
+    opacity: 0;
+  }
+  55% {
+    transform: translateY(3px) rotate(300deg);
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(-3px) rotate(345deg);
+  }
+  100% {
+    transform: translateY(0) rotate(360deg);
+  }
+}
+
+.dice-fall {
+  animation: dice-fall 0.7s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dice-fall {
+    animation: none;
+  }
+}
