@@ -26,6 +26,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
                 ({user.role === "GM" ? "Mestre" : "Jogador"})
               </span>
             </span>
+            <Link href="/conta" className="font-medium text-accent">
+              Minha Conta
+            </Link>
             <form action={logoutAction}>
               <button type="submit" className="font-medium text-accent">
                 Sair

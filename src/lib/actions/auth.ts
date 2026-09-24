@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { getSession } from "@/lib/session";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { requireUser } from "@/lib/dal";
 import {
   LoginFormSchema,
   RegisterFormSchema,
@@ -88,6 +89,40 @@ export async function loginAction(
 }
 
 export async function logoutAction() {
+  const session = await getSession();
+  session.destroy();
+  redirect("/login");
+}
+
+// Exclusão da própria conta (autoatendimento). Apaga o usuário e, em
+// cascata (onDelete: Cascade no schema), todas as suas fichas de
+// personagem e — se for Mestre — os monstros/NPCs que ele cadastrou
+// (compartilhados com a mesa, mas ligados à conta de quem criou).
+// Bloqueia se for o único Mestre: sem isso a mesa ficaria sem ninguém
+// capaz de promover um novo Mestre depois.
+export async function deleteAccountAction(
+  _prevState: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const user = await requireUser();
+
+  const confirmUsername = formData.get("confirmUsername");
+  if (confirmUsername !== user.username) {
+    return { message: "Digite seu usuário exatamente como está escrito para confirmar." };
+  }
+
+  if (user.role === "GM") {
+    const gmCount = await prisma.user.count({ where: { role: "GM" } });
+    if (gmCount <= 1) {
+      return {
+        message:
+          "Você é o único Mestre da mesa. Promova outra pessoa a Mestre antes de excluir sua conta.",
+      };
+    }
+  }
+
+  await prisma.user.delete({ where: { id: user.userId } });
+
   const session = await getSession();
   session.destroy();
   redirect("/login");
